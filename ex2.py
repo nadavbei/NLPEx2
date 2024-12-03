@@ -48,6 +48,10 @@ def get_data(categories=None, portion=1.):
     return x_train, y_train, x_test, y_test
 
 
+def count_trainable_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 def train_model(model, train_loader, optimizer, loss_fn, device):
     model.train()
     total_loss = 0.0
@@ -247,6 +251,8 @@ def transformer_classification(portion=1.):
     plt.tight_layout()
     plt.show()
 
+    print(print("model 3 numbers of parameters =", count_trainable_parameters(model)))
+
     return model
 
 
@@ -256,6 +262,7 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = nn.Sequential(nn.Linear(2000, len(category_dict))).to(device)
     MLP_classification(0.1, model, device)
+    print("model 1 numbers of parameters =", count_trainable_parameters(model))
 
     # Q2 - multi-layer MLP
     model = nn.Sequential(
@@ -264,6 +271,7 @@ if __name__ == "__main__":
         nn.Linear(500, len(category_dict))  # Hidden layer to output layer
     ).to(device)
     MLP_classification(0.1, model, device)
+    print("model 2 numbers of parameters =", count_trainable_parameters(model))
 
     # Q3 - Transformer
     print("\nTransformer results:")

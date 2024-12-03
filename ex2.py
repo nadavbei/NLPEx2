@@ -5,6 +5,12 @@
 ###################################################
 
 import numpy as np
+import torch
+from torch import nn
+from torch.utils.data import DataLoader, Dataset
+from torch.optim import Adam, AdamW
+import matplotlib as plt
+
 
 # subset of categories that we will use
 category_dict = {'comp.graphics': 'computer graphics',
@@ -42,6 +48,36 @@ def get_data(categories=None, portion=1.):
     return x_train, y_train, x_test, y_test
 
 
+def train_model(model, train_loader, optimizer, loss_fn, device):
+    model.train()
+    total_loss = 0.0
+    for batch in train_loader:
+        inputs, labels = batch
+        inputs, labels = inputs.to(device), labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = loss_fn(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+    return total_loss / len(train_loader)
+
+
+def evaluate_model(model, val_loader, device):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for batch in val_loader:
+            inputs, labels = batch
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, dim=1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    return correct / total
+
+
 # Q1,2
 def MLP_classification(portion=1., model=None):
     """
@@ -53,6 +89,40 @@ def MLP_classification(portion=1., model=None):
     x_train, y_train, x_test, y_test = get_data(categories=category_dict.keys(), portion=portion)
 
     ########### add your code here ###########
+    # print(y_train)
+    vectorizer = TfidfVectorizer(max_features=2000)
+    x_train = vectorizer.fit_transform(x_train).toarray()
+    x_test = vectorizer.transform(x_test).toarray()
+
+    train_data = list(zip(torch.tensor(x_train, dtype=torch.float32), torch.tensor(y_train, dtype=torch.long)))
+    test_data = list(zip(torch.tensor(x_test, dtype=torch.float32), torch.tensor(y_test, dtype=torch.long)))
+
+    train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
+    test_loader = DataLoader(test_data, batch_size=16)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = nn.Sequential(nn.Linear(2000, len(category_dict))).to(device)
+    optimizer = Adam(model.parameters(), lr=1e-3)
+    loss_fn = nn.CrossEntropyLoss()
+
+    train_losses, val_accuracies = [], []
+    for epoch in range(20):
+        train_loss = train_model(model, train_loader, optimizer, loss_fn, device)
+        train_losses.append(train_loss)
+        val_accuracy = evaluate_model(model, test_loader, device)
+        val_accuracies.append(val_accuracy)
+
+
+    # Plotting
+    plt.figure()
+    plt.plot(range(1, 21), train_losses, label="Train Loss")
+    plt.plot(range(1, 21), val_accuracies, label="Validation Accuracy")
+    plt.title(f"Single Layer MLP (Portion={portion})")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss/Accuracy")
+    plt.legend()
+    plt.show()
+
     return
 
 
@@ -135,7 +205,7 @@ def transformer_classification(portion=1.):
 if __name__ == "__main__":
     portions = [0.1, 0.2, 0.5, 1.]
     # Q1 - single layer MLP
-    pass
+    MLP_classification(0.1)
 
     # Q2 - multi-layer MLP
     pass

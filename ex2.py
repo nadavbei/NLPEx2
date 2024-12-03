@@ -121,7 +121,7 @@ def MLP_classification(portion, model, device):
     plt.legend()
     plt.show()
 
-    return
+    return model
 
 
 # Q3
@@ -164,17 +164,34 @@ def transformer_classification(portion=1.):
             input_ids = batch['input_ids'].to(dev)
             attention_mask = batch['attention_mask'].to(dev)
             labels = batch['labels'].to(dev)
-            ########### add your code here ###########
-        return
+
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+            loss = outputs.loss
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+        return total_loss / len(data_loader)
 
     def evaluate_model(model, data_loader, dev='cpu', metric=None):
         model.eval()
-        for batch in tqdm(data_loader):
-            input_ids = batch['input_ids'].to(dev)
-            attention_mask = batch['attention_mask'].to(dev)
-            labels = batch['labels'].to(dev)
-            ########### add your code here ###########
-        return
+        total = 0
+        correct = 0
+        with torch.no_grad():
+            for batch in tqdm(data_loader):
+                input_ids = batch['input_ids'].to(dev)
+                attention_mask = batch['attention_mask'].to(dev)
+                labels = batch['labels'].to(dev)
+
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                logits = outputs.logits
+                predictions = torch.argmax(logits, dim=1)
+
+                total += labels.size(0)
+                correct += (predictions == labels).sum().item()
+        return correct / total
 
     x_train, y_train, x_test, y_test = get_data(categories=category_dict.keys(), portion=portion)
 
@@ -196,8 +213,41 @@ def transformer_classification(portion=1.):
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
 
-    ########### add your code here ###########
-    return
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
+    # Training and evaluation
+    train_losses = []
+    val_accuracies = []
+
+    for epoch in range(epochs):
+        print(f"Epoch {epoch + 1}/{epochs}")
+        train_loss = train_epoch(model, train_loader, optimizer, dev)
+        val_accuracy = evaluate_model(model, val_loader, dev)
+
+        train_losses.append(train_loss)
+        val_accuracies.append(val_accuracy)
+
+        print(f"Train Loss: {train_loss:.4f}")
+        print(f"Validation Accuracy: {val_accuracy:.4f}")
+
+    plt.figure(figsize=(10, 5))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, epochs + 1), train_losses, label='Train Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Train Loss')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, epochs + 1), val_accuracies, label='Validation Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Validation Accuracy')
+
+    plt.tight_layout()
+    plt.show()
+
+    return model
 
 
 if __name__ == "__main__":

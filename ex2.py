@@ -208,7 +208,12 @@ if __name__ == "__main__":
     MLP_classification(0.1, model, device)
 
     # Q2 - multi-layer MLP
-    pass
+    model = nn.Sequential(
+        nn.Linear(2000, 500),  # Input layer to hidden layer
+        nn.ReLU(),  # Activation function for non-linearity
+        nn.Linear(500, len(category_dict))  # Hidden layer to output layer
+    ).to(device)
+    MLP_classification(0.1, model, device)
 
     # Q3 - Transformer
     print("\nTransformer results:")

@@ -79,7 +79,7 @@ def evaluate_model(model, val_loader, device):
 
 
 # Q1,2
-def MLP_classification(portion=1., model=None):
+def MLP_classification(portion, model, device):
     """
     Perform linear classification
     :param portion: portion of the data to use
@@ -100,8 +100,6 @@ def MLP_classification(portion=1., model=None):
     train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=16)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = nn.Sequential(nn.Linear(2000, len(category_dict))).to(device)
     optimizer = Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.CrossEntropyLoss()
 
@@ -205,7 +203,9 @@ def transformer_classification(portion=1.):
 if __name__ == "__main__":
     portions = [0.1, 0.2, 0.5, 1.]
     # Q1 - single layer MLP
-    MLP_classification(0.1)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = nn.Sequential(nn.Linear(2000, len(category_dict))).to(device)
+    MLP_classification(0.1, model, device)
 
     # Q2 - multi-layer MLP
     pass
